@@ -68,6 +68,7 @@ policies:
     one_active_task_per_session: true
     dispatch_monitoring_required: true
     acknowledgment_timeout_minutes: 5
+    reconnect_takeover_threshold: 3 # Only 3, or 4 when explicitly user-selected.
     parallel_only_without_resource_conflict: true
     stall_check_minutes: 60
     monitoring_mode: "observable_checks_only"
@@ -116,7 +117,8 @@ sessions:
   # role_name, kind, task_id, task_packet, status, resource_reservations,
   # replaces_session_id, last_verified_at, monitoring
   # monitoring: owner_session_id, dispatch_ref, sent_at, state,
-  # last_checked_at, last_progress_at, mechanism, next_check_at
+  # last_checked_at, last_progress_at, mechanism, next_check_at,
+  # consecutive_reconnects (null if unknown), last_reconnect_event_ref
   role_name_registry: []
 
 policy_overrides: []
@@ -141,6 +143,8 @@ next_safe_batch: []
 ### Session continuity
 
 Record actual persistent project-chat IDs and their documented replacements, not only role names. Reconcile stale entries with current platform evidence before dispatch. On main-session handoff, preserve the work/review chat channel and carry this registry in `orchestration_state` under `handoff-protocol.md`; the receiving session must still verify applicable authorization. Do not treat a missing registry or inaccessible chat as permission to spawn temporary agents.
+
+For repeated reconnects, apply `handoff-protocol.md` section 1.1 immediately at the recorded threshold; do not wait for the general stall timer. Track evidence per chat/task/dispatch, preserve the documented replacement chain, and carry applicable automatic-recovery authorization references without treating the profile itself as permission.
 
 ### Overall and workflow phases
 

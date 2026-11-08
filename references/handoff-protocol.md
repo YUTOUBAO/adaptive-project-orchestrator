@@ -1,6 +1,6 @@
 # Handoff, Takeover, and Context Migration
 
-Use this protocol for stalled work, planned session replacement, token-boundary migration, or archival.
+Use this protocol for stalled work, repeated reconnects, planned session replacement, token-boundary migration, or archival.
 
 ## 1. Detect a possible stall
 
@@ -15,6 +15,22 @@ A possible stall is not proof of failure. Before takeover:
 
 If the environment cannot wait, schedule, or poll in the background, say so. Do not claim that a future check is active. Check when the session is next observable or create an authorized reminder/automation.
 
+### 1.1. Repeated reconnects: immediate work-chat takeover
+
+Apply this early trigger to work and review chats under both original and successor main sessions. The default threshold is **3 distinct consecutive reconnect events without meaningful task progress**; an explicit user setting may choose **4**, but not a larger threshold. At the threshold, enter `takeover` immediately instead of waiting for the 60-minute stall check or continuing to resend the task. This replaces one failed persistent project chat; it does not authorize switching to a temporary agent pool.
+
+Count only reconnect events actually exposed by platform events, status/error history, or permitted logs and attributable to the same chat, task, and dispatch/turn. Record event references and observed times; deduplicate repeated observations of the same event. A normal wait timeout, slow output, `notLoaded`, failure of the main session's status request, or rereading the same error does not establish another child-chat reconnect. If the count is unavailable, record it as unknown and seek the smallest permitted status/error evidence; do not invent a count. Reset the consecutive streak only on meaningful task progress, not merely a transient connection success or a promise to start.
+
+At the threshold:
+
+1. Stop new dispatches and stop requesting retries of the failed chat. Use supported, authorized stop/interrupt controls to prevent further writes where available. Keep its task and resource reservations until writer ownership is safe; inability to stop an active writer is a real blocker, not permission for concurrent writes.
+2. Capture a minimal checkpoint: the original task/authorization references, completed and remaining acceptance items, exact changed/uncommitted artifact locations, valid checks/evidence, any owned running processes, reservations, and the next executable action. If the old chat cannot answer, reconstruct this from bounded primary artifacts; do not wait indefinitely for its handoff or copy its full history.
+3. Under the user's applicable automatic-recovery authorization, create a new persistent chat in the same project and authoritative workspace with the same role/title and applicable model settings. Carry the task ID, scope, authorization limits, and checkpoint; instruct it to execute the remaining work, not restart completed work or silently downgrade authorized implementation to read-only. Do not request repeated approval for an already-authorized in-scope replacement; missing tools or missing creation/messaging authorization must still be reported to the user.
+4. Record the new chat ID, `replaces_session_id`, and takeover generation in the authorized registry or handoff state. Start a fresh reconnect streak for the new chat while retaining the old chat's trigger evidence. Transfer task ownership only after confirming no conflicting old writer remains, then verify the successor accepted and actually resumed the next action. Continue the mandatory monitoring loop; sending the checkpoint alone is not successful takeover.
+5. Archive the old chat only after successful takeover and the ordinary archival conditions. Preserve prior changes and evidence; do not roll them back, overwrite them, or archive unrelated healthy chats.
+
+If the first successor reaches the same reconnect threshold before meaningful progress, stop automatic replacement chaining and escalate the likely shared platform/provider or access problem. Keep the checkpoint and ownership safe instead of creating an unbounded sequence of chats. Creating a replacement does not expand production, external-action, destructive-action, or spending permissions.
+
 ## 2. Request the minimum handoff
 
 Ask the current session for only the state needed to continue:
@@ -23,7 +39,7 @@ Ask the current session for only the state needed to continue:
 handoff_version: 1
 task_id: ""
 role_name: ""
-reason: "stall" # stall | planned | context_migration | platform_failure
+reason: "stall" # stall | reconnect_loop | planned | context_migration | platform_failure
 last_verified_at: ""
 status: ""
 completed_acceptance_items: []
@@ -39,6 +55,8 @@ next_exact_action: ""
 context_needed_by_successor: []
 latest_input_tokens: null
 usage_is_estimated: true
+reconnect_recovery: null # For reconnect_loop: source chat/task/dispatch, observed
+# event references/times, consecutive count, threshold, takeover generation.
 orchestration_state: null # Required for main-session handoff; see section 3.1.
 ```
 
@@ -77,7 +95,8 @@ orchestration_state:
   pending_dispatches: [] # Task-packet references and intended session IDs.
   pending_reviews: []
   monitoring_state: [] # Per task: chat ID, dispatch reference, state, owner,
-  # sent_at, last_checked_at, last_progress_at, mechanism, next_check_at.
+  # sent_at, last_checked_at, last_progress_at, mechanism, next_check_at,
+  # consecutive_reconnects (null if unknown), last_reconnect_event_ref.
   authorization_refs: [] # User evidence, scope, and outstanding approvals.
 ```
 

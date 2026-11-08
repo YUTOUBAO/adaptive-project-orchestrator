@@ -17,6 +17,7 @@ Use these defaults unless an authoritative project profile sets stricter or more
 - Run tasks in parallel only when their dependencies and shared, exclusive, and protected resources do not conflict.
 - Obtain item-specific approval immediately before high-risk, external, production, destructive, irreversible, or costly actions.
 - Check possible stalls after 60 minutes by default only when real timestamps and a real check mechanism exist. Never claim continuous monitoring without one.
+- A work/review chat with 3 confirmed consecutive reconnects without meaningful task progress triggers immediate same-role takeover into a new persistent project chat; the user may select 4 instead, never more. Do not wait for the 60-minute stall threshold. Follow `handoff-protocol.md` for evidence, safe ownership transfer, authorization, and retry-loop limits.
 - A takeover keeps the original role name by default and archives the old session only after a usable handoff and successful takeover.
 - Main-session handoff preserves control of the existing project-directory work and review chats. The successor remains the orchestrator; it must not replace those chats with temporary agents, including for review, unless the user explicitly authorizes that change.
 
@@ -43,7 +44,7 @@ Use [references/project-profile.md](references/project-profile.md). Treat the pr
 3. Give every session one task packet with scope, allowed writes, acceptance criteria, evidence requirements, risk boundaries, and a context budget.
 4. Immediately check acceptance and execution after dispatch, and keep a real wait/status loop or authorized live monitor until verified delivery, a concrete escalated blocker, or confirmed transfer of monitoring ownership. Never end merely with “sent, not yet confirmed.” Require a structured delivery packet and verify material claims from primary evidence.
 5. Route consequential work through an independent review packet before integration or release.
-6. On a real stall, recover the minimum state, create a same-role takeover when authorized, verify it can continue, then archive the old session. For a main-session handoff, restore the existing work/review chat routing under `handoff-protocol.md` before declaring takeover complete.
+6. On a real stall or the confirmed reconnect threshold, recover the minimum state, create a same-role takeover when authorized, resume the remaining task rather than restarting it, then archive the old session after takeover is verified. For a main-session handoff, restore the existing work/review chat routing under `handoff-protocol.md` before declaring takeover complete.
 7. Report completed work, evidence, unresolved risks, approvals needed, and the next safe batch.
 
 Read [references/orchestration-core.md](references/orchestration-core.md) for scheduling and review. Use [references/task-packet.md](references/task-packet.md) for dispatch, delivery, and review packets. Use [references/handoff-protocol.md](references/handoff-protocol.md) for stalls, takeovers, context migration, and archival.
