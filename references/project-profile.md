@@ -2,7 +2,7 @@
 
 Create or refresh this profile after bounded reconnaissance. Keep observed facts separate from inferences. A profile coordinates work; it does not grant permission to write, release, message external systems, or perform protected actions.
 
-Do not assume the profile must live inside the project. Keep it in the current session unless the user authorizes a durable path. If an existing authoritative profile exists, preserve its supported fields and update only evidence-backed values.
+Do not assume the profile must live inside the project. The main session keeps it inline; if the user authorizes a durable path, dispatch the write to a persistent project chat. If an existing authoritative profile exists, preserve its supported fields and update only evidence-backed values.
 
 ## YAML template
 
@@ -60,11 +60,14 @@ work:
   queued_tasks: []
   blocked_tasks: []
   dependency_edges: []
-  integration_owner: ""
+  integration_owner: "" # Persistent project chat executing integration, not main.
 
 policies:
   orchestration:
-    mode: "STRICT_ORCHESTRATOR"
+    mode: "STRICT_ORCHESTRATOR" # Mandatory, not an overridable default.
+    main_execution_policy: "orchestration_only"
+    execution_session_kind: "persistent_project_chat"
+    missing_executor_policy: "report_blocker_and_request_access_or_authorization"
     one_active_task_per_session: true
     dispatch_monitoring_required: true
     acknowledgment_timeout_minutes: 5
@@ -96,12 +99,14 @@ policies:
     evidence_required: true
   testing:
     required_checks: []
-    acceptance_owner: ""
+    acceptance_owner: "" # Decision/evidence owner; not permission to run checks.
+    execution_verification_session_id: "" # Persistent implementation/review chat.
     failure_policy: "block_unless_exception_is_explicitly_approved"
     evidence_retention: "paths_commands_and_concise_results"
   release:
     environments: []
-    release_owner: ""
+    release_owner: "" # Decision owner.
+    release_execution_session_id: "" # Authorized persistent project chat, never main.
     required_approvals: []
     rollback_or_recovery_required: true
     production_verification_required: true
@@ -109,7 +114,7 @@ policies:
 sessions:
   main_role: "orchestrator"
   main_session_id: ""
-  execution_channel: "" # Record the established channel, e.g. project_chats.
+  execution_channel: "project_chats" # Persistent project implementation/review chats.
   registry_location: "" # Existing authorized path/reference, if any.
   work_sessions: []
   review_sessions: []
@@ -124,7 +129,8 @@ sessions:
 policy_overrides: []
 # Each override records:
 # - key, previous_value, new_value, authoritative_source, reason, effective_at
-# Overrides cannot relax active user instructions, authorization boundaries, or hard context limits.
+# Overrides cannot relax the mandatory main role, persistent execution channel, monitoring,
+# active user instructions, authorization boundaries, or hard context limits.
 
 open_questions: []
 risks: []
@@ -142,7 +148,7 @@ next_safe_batch: []
 
 ### Session continuity
 
-Record actual persistent project-chat IDs and their documented replacements, not only role names. Reconcile stale entries with current platform evidence before dispatch. On main-session handoff, preserve the work/review chat channel and carry this registry in `orchestration_state` under `handoff-protocol.md`; the receiving session must still verify applicable authorization. Do not treat a missing registry or inaccessible chat as permission to spawn temporary agents.
+Record actual persistent project-chat IDs and their documented replacements, not only role names. Reconcile stale entries with current platform evidence before dispatch. On main-session handoff, preserve the work/review chat channel and carry this registry in `orchestration_state` under `handoff-protocol.md`; the receiving session must still verify applicable authorization. Do not treat a missing registry or inaccessible chat as permission to spawn temporary agents or execute in the main session. Keep coordination state inline and delegate durable registry updates; lack of a writer is a blocker, not a file-write exception.
 
 For repeated reconnects, apply `handoff-protocol.md` section 1.1 immediately at the recorded threshold; do not wait for the general stall timer. Track evidence per chat/task/dispatch, preserve the documented replacement chain, and carry applicable automatic-recovery authorization references without treating the profile itself as permission.
 
@@ -182,4 +188,4 @@ Do not infer approval from a task's existence, a plan's approval, or access cred
 
 ### Overrides
 
-Project configuration may override operating defaults when the authoritative source and reason are recorded. Choose stricter values when sources disagree. Never use an override to exceed the active input-token cap, bypass authorization, fabricate monitoring, or expand user scope.
+Project configuration may override tunable scheduling defaults when the authoritative source and reason are recorded. `STRICT_ORCHESTRATOR`, orchestration-only main sessions, persistent project-chat execution, and mandatory monitoring are not relaxable defaults. Choose stricter values when sources disagree. Never use an override to exceed the active input-token cap, bypass authorization, fabricate monitoring, or expand user scope.

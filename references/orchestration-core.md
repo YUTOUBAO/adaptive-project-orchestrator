@@ -4,7 +4,7 @@ Use this reference when a project needs more than one task or session.
 
 ## 1. Main-session contract
 
-Under `STRICT_ORCHESTRATOR`, the main session owns:
+`STRICT_ORCHESTRATOR` is mandatory for every main session, before and after handoff. The main session owns:
 
 - user communication and clarification;
 - project-phase and project-profile decisions;
@@ -12,9 +12,21 @@ Under `STRICT_ORCHESTRATOR`, the main session owns:
 - dispatch, status checks, evidence review, integration decisions, and reporting;
 - approval requests and escalation.
 
-It does not silently perform the implementation assigned to a work session. If no delegated-session mechanism is available or authorized, state that constraint and ask whether to execute the task in the current session or provide a dispatch plan only.
+All implementation and execution-based verification are assigned to persistent project implementation/review chats. The main session must not edit code or project files; run commands, scripts, tests, builds, or diagnostic probes; or execute commits, integration changes, deployments, or concrete release operations. It may inspect minimal existing delivery/evidence artifacts and use authorized session tools, but must not run acceptance checks itself.
 
-Project configuration may choose a less strict mode, but cannot bypass current user scope, platform permissions, or active safety and context limits.
+This is a role boundary, not a preference: project configuration cannot choose a less strict mode. Worker faults, reconnects, timeouts, urgent requests, and missing tools are not exceptions. With no usable persistent chat or authorized route, report the specific blocker and request access or same-role persistent recovery authorization; never fall back to main-session or temporary-agent execution. Keep coordination state inline and delegate any authorized durable record/file write to a persistent project chat.
+
+### Boundary checks for dispatch and acceptance
+
+| Situation | Main-session action | Execution/evidence owner |
+|---|---|---|
+| Normal task, before handoff | Decompose, authorize/dispatch, track acceptance and execution | Persistent project implementation chat |
+| Main-session handoff | Restore existing chat IDs, reservations and monitoring; remain orchestrator | Existing persistent implementation/review chats |
+| Worker fault/reconnect threshold or user urgency | Diagnose from existing evidence; coordinate authorized same-role persistent recovery; keep monitoring | Persistent successor after safe writer transfer, never main/temporary agent |
+| No usable persistent chat or session tool | Report the concrete blocked operation and request necessary access/authorization | Execution remains blocked; no local fallback |
+| Acceptance requires a command/test/build | Dispatch the check and inspect its returned result; do not run it | Persistent implementation/review chat |
+| Profile, registry or handoff must be saved | Keep state inline until an authorized persistent chat can write it | Persistent project chat at the approved path |
+| Commit, integration, deployment or release is approved | Coordinate gates and monitor the authorized operation | Persistent project implementation/release chat |
 
 ### Preserve the execution channel after main-session handoff
 
@@ -23,7 +35,7 @@ A project-directory work or review chat is a persistent, user-visible project se
 - A successor main session inherits the existing session registry, task ownership, resource reservations, pending reviews, and applicable authorization evidence. Only the controller changes; workers continue their current tasks.
 - Reconcile registered IDs with current platform metadata and documented same-role replacements before dispatch. A stale registry, matching title, or `notLoaded` status alone is not evidence that a chat must be replaced. Verify project/workspace scope; do not contact unrelated chats.
 - Use the existing project-chat channel for implementation and independent review. In Codex, use the available `list_threads` / `read_thread` tools for discovery and inspection, and `send_message_to_thread` / `wait_threads` for authorized dispatch and tracking. `spawn_agent` does not restore control of an existing project chat.
-- A handoff, context migration, convenience, or missing chat tool does not authorize a switch to temporary agents or creation of replacement chats. If the route or authorization cannot be recovered, report the specific blocker and ask the user; do not silently change channels or take over implementation.
+- A handoff, context migration, convenience, or missing chat tool does not authorize temporary agents or main-session execution. Create a same-role persistent replacement only under applicable recovery authorization. If the route or authorization cannot be recovered, report the specific blocker and ask the user; do not change channels or take over implementation.
 - Send only the next task or missing continuation state to the verified chat. Do not restart its task, reset an authorized implementation task to read-only, or repeat completed checks solely because the main session changed. Reuse unchanged evidence; check new changes and concrete uncertainty.
 
 Follow `handoff-protocol.md` for the continuity packet, takeover completion gate, and recovery from a misrouted task.
@@ -98,7 +110,7 @@ The confirmed reconnect threshold is an independent immediate takeover trigger, 
 
 ## 6. Delivery and evidence review
 
-A delivery packet is a claim, not proof. The main session or reviewer should inspect the minimum primary evidence needed to verify:
+A delivery packet is a claim, not proof. The main session inspects the minimum existing primary evidence below; a persistent reviewer performs any needed reproduction or execution-based check:
 
 - changes are within allowed scope;
 - outputs exist at the stated locations;
@@ -106,11 +118,11 @@ A delivery packet is a claim, not proof. The main session or reviewer should ins
 - unresolved failures, warnings, assumptions, and external effects are disclosed;
 - protected resources were not changed without approval.
 
-Prefer exact file locations, commands, timestamps, artifact identifiers, and concise result excerpts. Avoid importing full logs into the main context.
+Prefer exact file locations, commands, timestamps, artifact identifiers, and concise result excerpts. Avoid importing full logs into the main context. If a claim needs a new command, script, test, or build, dispatch it to a persistent implementation/review chat and monitor delivery; the main session must not run it under an acceptance or diagnostic label.
 
 ## 7. Independent review
 
-Use an independent reviewer for consequential shared behavior, integration boundaries, release readiness, production changes, irreversible actions, or when the task packet requires it.
+Use an independent persistent project review chat for consequential shared behavior, integration boundaries, release readiness, production changes, irreversible actions, or when the task packet requires it. If unavailable, report the unmet review gate; neither the main session nor a temporary agent substitutes for that reviewer.
 
 The reviewer receives the original task packet, the delivery packet, and primary artifacts. It should not receive the implementer's hidden reasoning or a prompt that reveals the desired verdict.
 
@@ -125,7 +137,7 @@ The main session resolves disagreements using primary evidence. It does not aver
 
 ## 8. Integration and reporting
 
-Integrate only reviewed, dependency-complete work. Re-run the smallest meaningful cross-task verification after integration because individually passing tasks can conflict when combined.
+The main session decides whether reviewed, dependency-complete work may integrate. Assign the actual integration, commit, deployment, release operations, and smallest meaningful post-integration checks to authorized persistent project chats; individually passing tasks can conflict when combined. Inspect their returned evidence and keep monitoring until the applicable gates pass or a concrete blocker is escalated.
 
 Report:
 

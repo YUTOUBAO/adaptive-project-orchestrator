@@ -2,6 +2,12 @@
 
 Use this protocol for stalled work, repeated reconnects, planned session replacement, token-boundary migration, or archival.
 
+## Role boundary throughout recovery
+
+The original and successor main sessions remain orchestration-only. Recovery transfers a worker's implementation and execution-based verification to a same-role persistent project chat, never to the main session or a temporary agent. Faults, reconnects, timeouts, user urgency, or missing tools do not relax this boundary. Main-session activity is limited to communication, dispatch/resource coordination, real monitoring, handoff organization, minimal existing-evidence inspection, and reporting.
+
+Keep checkpoint/registry updates inline in main-session state; dispatch any authorized durable file writes, diagnostic scripts, cleanup commands, or verification runs to persistent project chats. If the worker route is unavailable, report the concrete blocked operation and necessary access/authorization. Preserve safe ownership and all usable monitoring rather than executing locally or treating a timeout as completion.
+
 ## 1. Detect a possible stall
 
 The default threshold is 60 minutes without meaningful progress. Measure only from observable timestamps or platform events. Meaningful progress is new acceptance evidence, completed work, a concrete blocker, or a gating approval request.
@@ -37,6 +43,7 @@ Ask the current session for only the state needed to continue:
 
 ```yaml
 handoff_version: 1
+session_kind: "work" # main | work | review; preserve the role on takeover.
 task_id: ""
 role_name: ""
 reason: "stall" # stall | reconnect_loop | planned | context_migration | platform_failure
@@ -75,11 +82,11 @@ Takeover sequence:
 5. release the old session's write ownership only after the successor can continue safely;
 6. archive the old session after successful takeover, unless retention policy requires it to remain visible.
 
-If duplicate writes cannot be prevented, stop both writers and reconcile before continuing.
+If duplicate writes cannot be prevented, use authorized session controls to stop both writers and assign reconciliation to a persistent project chat before continuing. The main session does not run cleanup or reconciliation commands itself.
 
 ### 3.1. Main-session continuity
 
-A main-session successor must continue controlling the existing project-directory work and review chats, not create a temporary agent pool to replace them. This applies to planned handoff, stalls, platform recovery, and context migration. Changing execution channels requires explicit user authorization; taking over the main role is not that authorization.
+A main-session successor must continue controlling the existing project-directory work and review chats, not create a temporary agent pool to replace them or become the executor. This applies to planned handoff, stalls, platform recovery, and context migration. `main_execution_policy` remains `orchestration_only`; handoff never grants execution authority. If tools, identity, or authorization are missing, report incomplete recovery and request what is needed while retaining all usable monitoring.
 
 For a main-session handoff or migration, replace `orchestration_state: null` with this compact mapping:
 
@@ -87,6 +94,7 @@ For a main-session handoff or migration, replace `orchestration_state: null` wit
 orchestration_state:
   previous_main_session_id: ""
   execution_channel: "project_chats"
+  main_execution_policy: "orchestration_only" # Mandatory; never relaxed on takeover.
   session_registry: "" # Authorized path/reference, if available.
   controlled_sessions: [] # Inline records when no retrievable registry exists.
   # Each registry/inline record: session_id, host_id, project_id, workspace_root,
@@ -100,7 +108,7 @@ orchestration_state:
   authorization_refs: [] # User evidence, scope, and outstanding approvals.
 ```
 
-Use an existing authorized registry location; do not invent or write a project file without permission. Prefer a reference over duplicating a large roster, but never leave both the registry and inline records empty when controlled chats exist. Do not copy chat histories into this mapping.
+Use an existing authorized registry location; the main session keeps changes inline or dispatches durable updates to an authorized persistent project chat, never writes the registry itself. Prefer a reference over duplicating a large roster, but never leave both the registry and inline records empty when controlled chats exist. Do not copy chat histories into this mapping.
 
 Before declaring takeover complete:
 
@@ -130,6 +138,7 @@ A new low-context session receives only:
 
 ```yaml
 migration_version: 1
+session_kind: "work" # main | work | review; main remains orchestration-only.
 project: ""
 authoritative_workspace: ""
 current_objective: ""
@@ -147,7 +156,7 @@ verification_needed: []
 orchestration_state: null # Required for main-session migration; see section 3.1.
 ```
 
-Prefer paths and identifiers over pasted artifacts. Include evidence excerpts only when the successor cannot safely retrieve the source.
+Prefer paths and identifiers over pasted artifacts. Include evidence excerpts only when the successor cannot safely retrieve the source. For `session_kind: main`, `next_exact_action` is a coordination/dispatch or evidence-inspection step, never a command or file write; carry the mandatory orchestration-only policy in `orchestration_state`.
 
 ## 6. Archival rules
 

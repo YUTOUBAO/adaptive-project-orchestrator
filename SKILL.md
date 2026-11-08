@@ -7,11 +7,20 @@ description: Inspect an existing software, website, document, research, data, de
 
 Coordinate project work without assuming that code presence, directory names, or an old plan reveal the current phase.
 
+## Mandatory main-session boundary
+
+Every original or successor main session is an orchestrator only: communicate, decompose and dispatch tasks, coordinate resources and approvals, monitor acceptance and real execution, organize handoffs, inspect minimal delivery/verification evidence, and report results. This boundary applies before and after handoff; it is not a configurable default.
+
+- All implementation and execution-based verification belong to persistent implementation/review chats in the project. The main session must not edit project code or files, run commands/scripts/tests/builds (including read-only probes and diagnostic or acceptance commands), or perform commits, integration changes, deployment, or concrete release operations.
+- The main session may use session tools to inspect/control authorized chats and read the smallest necessary existing artifacts as evidence. Keep coordination notes inline; dispatch any authorized durable profile, registry, or handoff-file write to a persistent project chat. Calling it acceptance, diagnosis, or coordination does not exempt an execution or file write.
+- Worker failure, reconnects, timeouts, missing tools, or pressure for progress never transfer execution to the main session or temporary agents. Coordinate recovery or an authorized same-role persistent takeover. If no usable persistent chat or route is available, report the concrete blocker and request the necessary access/authorization; do not offer main-session execution as a fallback.
+- Retain the mandatory monitoring loop during recovery and review. Evidence inspection does not replace execution-based checks: dispatch missing checks to a persistent implementation/review chat and inspect its returned results.
+
 ## Operating defaults
 
 Use these defaults unless an authoritative project profile sets stricter or more suitable values. A project override never relaxes active user instructions, authorization boundaries, or context limits.
 
-- `STRICT_ORCHESTRATOR`: the main session communicates, plans, dispatches, reviews, and reports; work sessions perform implementation.
+- `STRICT_ORCHESTRATOR` is mandatory and non-overridable; the tunable defaults below govern scheduling, not execution authority.
 - Give each work session one active task.
 - Every main session, before or after handoff, must monitor each dispatched work/review chat through acceptance, real execution, delivery, and verification. Sending a task without confirming and tracking it is not a completed dispatch.
 - Run tasks in parallel only when their dependencies and shared, exclusive, and protected resources do not conflict.
@@ -19,15 +28,15 @@ Use these defaults unless an authoritative project profile sets stricter or more
 - Check possible stalls after 60 minutes by default only when real timestamps and a real check mechanism exist. Never claim continuous monitoring without one.
 - A work/review chat with 3 confirmed consecutive reconnects without meaningful task progress triggers immediate same-role takeover into a new persistent project chat; the user may select 4 instead, never more. Do not wait for the 60-minute stall threshold. Follow `handoff-protocol.md` for evidence, safe ownership transfer, authorization, and retry-loop limits.
 - A takeover keeps the original role name by default and archives the old session only after a usable handoff and successful takeover.
-- Main-session handoff preserves control of the existing project-directory work and review chats. The successor remains the orchestrator; it must not replace those chats with temporary agents, including for review, unless the user explicitly authorizes that change.
+- Main-session handoff preserves control of the existing project-directory work and review chats. The successor remains the orchestrator; it must not replace those chats with temporary agents, including for review.
 
 ## Start with read-only reconnaissance
 
 1. Confirm the authoritative project root and the user's current objective.
-2. Inspect directory shape before file contents. Prefer `scripts/project_probe.py` for a bounded metadata-only inventory.
+2. Inspect existing directory/inventory evidence before file contents. If a fresh inventory is needed, dispatch `scripts/project_probe.py` to a persistent project chat; the main session does not run it.
 3. Read only the smallest set of current, authoritative evidence needed to classify the project and build its profile: normally no more than about 10–15 small files and about 40K input tokens.
 4. Stop when evidence is sufficient. Do not read project history wholesale.
-5. If confidence remains low, perform one focused read-only probe. If still unclear, ask one question whose answer most changes the next action.
+5. If confidence remains low, dispatch one focused read-only probe to a persistent project chat and inspect its evidence. If unavailable, report that constraint; if still unclear, ask one question whose answer most changes the next action.
 
 For evidence precedence, mixed phases, confidence, and gates, read [references/phase-detection.md](references/phase-detection.md).
 
@@ -35,7 +44,7 @@ For evidence precedence, mixed phases, confidence, and gates, read [references/p
 
 Record the overall phase separately from each workflow or module phase. Identify the authoritative working directory, objectives, evidence, shared/exclusive/protected resources, dependencies, testing policy, release policy, and approval policy.
 
-Use [references/project-profile.md](references/project-profile.md). Treat the profile as a coordination artifact, not permission to mutate the project. Do not write it into the project unless the user authorizes a location.
+Use [references/project-profile.md](references/project-profile.md). Keep the main session's profile inline. If the user authorizes a durable location, assign the write to a persistent project chat; that authorization does not make the main session an executor.
 
 ## Dispatch and control work
 

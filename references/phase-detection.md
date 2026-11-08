@@ -37,7 +37,7 @@ Lower-ranked evidence can corroborate but should not override a current authorit
 3. Extract only claims relevant to phase gates: current outcome, completed work, open work, validation, approvals, release state, blockers.
 4. Assign an overall phase and a separate phase for each workflow or module.
 5. Record supporting and contradicting evidence, confidence, missing evidence, and the next gate.
-6. If confidence is low, perform one focused read-only probe. If still low, ask one high-information question.
+6. If confidence is low, dispatch one focused read-only probe to a persistent project chat and inspect its evidence; the main session does not run the probe. If no route is available, report the constraint. If still low, ask one high-information question.
 
 Do not read all project history to improve confidence. Stop when another file is unlikely to change the next safe action.
 

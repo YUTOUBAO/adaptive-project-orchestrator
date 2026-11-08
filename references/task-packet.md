@@ -10,6 +10,10 @@ packet_type: "task"
 task_id: ""
 project_profile_version: 1
 role_name: ""
+execution_session:
+  kind: "persistent_project_chat" # Required for implementation and executable checks.
+  session_id: ""
+  main_execution_policy: "orchestration_only"
 takeover_generation: 0
 single_outcome: ""
 why_now: ""
@@ -68,7 +72,9 @@ reporting:
 - Separate authorization to analyze an action from authorization to perform it.
 - Include the minimum source material. Point to files instead of pasting large content when the session can read them safely.
 - Define stop conditions for missing access, conflicting changes, failed safety checks, unexpected external effects, or context pressure.
-- The main session owns acceptance checks, execution/completion monitoring, and delivery verification under `orchestration-core.md`. Do not finish dispatch at “sent”; on main-session handoff, transfer this ownership and its current check state.
+- The main session owns acceptance decisions, execution/completion monitoring, and inspection of existing delivery evidence under `orchestration-core.md`. Persistent implementation/review chats execute required checks, writes, commits, deployments, and release operations; main-session acceptance does not authorize running a command.
+- `execution_session` identifies the actual persistent project chat, not the main session or a temporary agent. If the route is missing, report a blocker and request necessary access/authorization instead of changing executor type.
+- Do not finish dispatch at “sent”; on main-session handoff, transfer monitoring ownership and its current check state without transferring execution to the main session.
 
 ## Delivery packet
 
@@ -90,6 +96,7 @@ acceptance_results: []
 # Each result: criterion, verdict, evidence
 
 verification:
+  executed_by_session_id: "" # Persistent implementation/review chat, not main.
   commands: []
   checks: []
   artifacts: []
@@ -132,6 +139,7 @@ packet_type: "review"
 review_id: ""
 task_id: ""
 reviewer_role: ""
+reviewer_session_id: "" # Independent persistent project review chat, never main.
 
 review_inputs:
   original_task_packet: ""
@@ -165,7 +173,7 @@ release_recommendation: ""
 ### Review rules
 
 - Review the requested outcome and evidence, not the implementer's style or hidden reasoning.
-- Reproduce the smallest decisive checks when practical.
+- The persistent review chat reproduces the smallest decisive checks when practical. The main session inspects returned evidence; missing executable checks remain pending until a persistent chat runs them.
 - A finding cites a specific criterion or risk and primary evidence.
 - Use `BLOCKED` when evidence or access is insufficient; do not guess a pass or failure.
 - The orchestrator resolves conflicting claims from artifacts and observable results, not role seniority.
