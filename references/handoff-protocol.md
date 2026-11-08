@@ -39,6 +39,7 @@ next_exact_action: ""
 context_needed_by_successor: []
 latest_input_tokens: null
 usage_is_estimated: true
+orchestration_state: null # Required for main-session handoff; see section 3.1.
 ```
 
 Do not copy the full conversation, logs, or unrelated project history into the handoff.
@@ -49,14 +50,47 @@ The successor uses the original `role_name` by default so project ownership rema
 
 Takeover sequence:
 
-1. freeze new writes by the old session when possible;
+1. freeze new writes or dispatches by the old session when possible; a main-session handoff does not stop healthy workers already executing their assigned tasks;
 2. capture or reconstruct the minimum handoff from primary artifacts;
 3. create or assign the authorized successor with the original task packet plus the handoff;
-4. have the successor confirm the authoritative workspace, resource reservations, last verified state, and next action;
+4. have the successor confirm the authoritative workspace, resource reservations, last verified state, and next action; for a main-session successor, also complete the session-control checks in section 3.1;
 5. release the old session's write ownership only after the successor can continue safely;
 6. archive the old session after successful takeover, unless retention policy requires it to remain visible.
 
 If duplicate writes cannot be prevented, stop both writers and reconcile before continuing.
+
+### 3.1. Main-session continuity
+
+A main-session successor must continue controlling the existing project-directory work and review chats, not create a temporary agent pool to replace them. This applies to planned handoff, stalls, platform recovery, and context migration. Changing execution channels requires explicit user authorization; taking over the main role is not that authorization.
+
+For a main-session handoff or migration, replace `orchestration_state: null` with this compact mapping:
+
+```yaml
+orchestration_state:
+  previous_main_session_id: ""
+  execution_channel: "project_chats"
+  session_registry: "" # Authorized path/reference, if available.
+  controlled_sessions: [] # Inline records when no retrievable registry exists.
+  # Each registry/inline record: session_id, host_id, project_id, workspace_root,
+  # role_name, kind (work/review), task_id, task_packet, status,
+  # resource_reservations, replaces_session_id, last_verified_at
+  pending_dispatches: [] # Task-packet references and intended session IDs.
+  pending_reviews: []
+  monitoring_state: [] # Per task: chat ID, dispatch reference, state, owner,
+  # sent_at, last_checked_at, last_progress_at, mechanism, next_check_at.
+  authorization_refs: [] # User evidence, scope, and outstanding approvals.
+```
+
+Use an existing authorized registry location; do not invent or write a project file without permission. Prefer a reference over duplicating a large roster, but never leave both the registry and inline records empty when controlled chats exist. Do not copy chat histories into this mapping.
+
+Before declaring takeover complete:
+
+1. Locate the registry and reconcile relevant work/review chats against current platform metadata and documented replacement chains. Verify their stable IDs, host/project/workspace scope, current tasks, and reservations; names and stale status labels are insufficient. If the packet lacks a registry, recover it with bounded read-only discovery rather than spawning agents.
+2. Confirm the old main is no longer dispatching and the successor has the tools and applicable user authorization to inspect and message the existing chats. A handoff reference is not itself permission. Perform a bounded read/status check on an active controlled chat when one exists; if access or identity remains unresolved, report incomplete control recovery rather than claiming success.
+3. Take ownership of all queued, unacknowledged, active, and review-stage monitoring records, then perform the next real status/wait check. Resume pending dispatches and reviews through verified chats without duplicating a busy worker's task. Preserve scope, authorization, and valid evidence; do not end with an unconfirmed-send disclaimer. If an old monitor exists, confirm its status and transfer/retire it when authorized so monitoring is neither dropped nor duplicated.
+4. Report the recovered chat roles/IDs, active tasks, unresolved routes, and next safe dispatch. Archive the old main only after the continuity gate and ordinary archival conditions pass. Do not archive or recreate healthy workers merely because their controller changed.
+
+If work was already sent through the wrong channel, stop new dispatches and request a safe stop from that worker using the available authorized controls. Capture its changed paths, artifacts, checks, remaining work, reservations, and any still-running processes; confirm no conflicting writer remains before resuming in the correct chat. Preserve existing changes and evidence without rollback or forced overwrite. Close the erroneous temporary agent only when safe and authorized; do not close the project chat.
 
 ## 4. Context and token boundary
 
@@ -91,6 +125,7 @@ required_approvals: []
 known_blockers: []
 next_exact_action: ""
 verification_needed: []
+orchestration_state: null # Required for main-session migration; see section 3.1.
 ```
 
 Prefer paths and identifiers over pasted artifacts. Include evidence excerpts only when the successor cannot safely retrieve the source.

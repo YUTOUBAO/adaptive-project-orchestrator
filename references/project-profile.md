@@ -66,6 +66,8 @@ policies:
   orchestration:
     mode: "STRICT_ORCHESTRATOR"
     one_active_task_per_session: true
+    dispatch_monitoring_required: true
+    acknowledgment_timeout_minutes: 5
     parallel_only_without_resource_conflict: true
     stall_check_minutes: 60
     monitoring_mode: "observable_checks_only"
@@ -105,8 +107,16 @@ policies:
 
 sessions:
   main_role: "orchestrator"
+  main_session_id: ""
+  execution_channel: "" # Record the established channel, e.g. project_chats.
+  registry_location: "" # Existing authorized path/reference, if any.
   work_sessions: []
   review_sessions: []
+  # Each work/review item: session_id, host_id, project_id, workspace_root,
+  # role_name, kind, task_id, task_packet, status, resource_reservations,
+  # replaces_session_id, last_verified_at, monitoring
+  # monitoring: owner_session_id, dispatch_ref, sent_at, state,
+  # last_checked_at, last_progress_at, mechanism, next_check_at
   role_name_registry: []
 
 policy_overrides: []
@@ -127,6 +137,10 @@ next_safe_batch: []
 - Use absolute paths when the environment exposes them; do not guess missing roots.
 - Prefer current-session decisions and designated state files over timestamps or old plans.
 - Add source locations and dates to evidence where available.
+
+### Session continuity
+
+Record actual persistent project-chat IDs and their documented replacements, not only role names. Reconcile stale entries with current platform evidence before dispatch. On main-session handoff, preserve the work/review chat channel and carry this registry in `orchestration_state` under `handoff-protocol.md`; the receiving session must still verify applicable authorization. Do not treat a missing registry or inaccessible chat as permission to spawn temporary agents.
 
 ### Overall and workflow phases
 

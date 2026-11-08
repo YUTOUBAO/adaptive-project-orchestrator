@@ -16,6 +16,18 @@ It does not silently perform the implementation assigned to a work session. If n
 
 Project configuration may choose a less strict mode, but cannot bypass current user scope, platform permissions, or active safety and context limits.
 
+### Preserve the execution channel after main-session handoff
+
+A project-directory work or review chat is a persistent, user-visible project session, not a temporary agent spawned inside the main chat. Sharing a role name or workspace does not make the two interchangeable.
+
+- A successor main session inherits the existing session registry, task ownership, resource reservations, pending reviews, and applicable authorization evidence. Only the controller changes; workers continue their current tasks.
+- Reconcile registered IDs with current platform metadata and documented same-role replacements before dispatch. A stale registry, matching title, or `notLoaded` status alone is not evidence that a chat must be replaced. Verify project/workspace scope; do not contact unrelated chats.
+- Use the existing project-chat channel for implementation and independent review. In Codex, use the available `list_threads` / `read_thread` tools for discovery and inspection, and `send_message_to_thread` / `wait_threads` for authorized dispatch and tracking. `spawn_agent` does not restore control of an existing project chat.
+- A handoff, context migration, convenience, or missing chat tool does not authorize a switch to temporary agents or creation of replacement chats. If the route or authorization cannot be recovered, report the specific blocker and ask the user; do not silently change channels or take over implementation.
+- Send only the next task or missing continuation state to the verified chat. Do not restart its task, reset an authorized implementation task to read-only, or repeat completed checks solely because the main session changed. Reuse unchanged evidence; check new changes and concrete uncertainty.
+
+Follow `handoff-protocol.md` for the continuity packet, takeover completion gate, and recovery from a misrouted task.
+
 ## 2. One session, one active task
 
 A work session has exactly one active task by default. Its packet must identify one outcome and one completion decision. A task may contain tightly coupled steps only when they share the same acceptance criteria and resource set.
@@ -47,15 +59,31 @@ When uncertain, serialize. Parallel speed is not worth ambiguous ownership or ev
 1. Select the smallest dependency-complete batch.
 2. Reserve resources before dispatch.
 3. Issue one task packet per session from `task-packet.md`.
-4. Confirm the session accepted the packet and constraints.
-5. Track state as `queued`, `active`, `waiting`, `review`, `passed`, `failed`, `takeover`, or `archived`.
+4. Immediately start the monitoring loop in section 5. A successful send means `queued`, not `active`; obtain an observable acknowledgment or actual task progress rather than ending the turn at that disclaimer.
+5. Track state as `queued`, `accepted`, `active`, `waiting`, `review`, `passed`, `failed`, `takeover`, or `archived`.
 6. Release resource reservations only after delivery is captured or the task is explicitly abandoned.
+7. Keep a named monitoring owner until verified delivery, a concrete escalated blocker, or confirmed transfer to another main session. The rule applies equally to original and successor main sessions, and to review tasks.
 
 Session tools are environment-dependent. Creating, messaging, taking over, or archiving sessions must be authorized by the user and supported by the platform.
 
-## 5. Status and stall checks
+## 5. Mandatory dispatch monitoring and stall checks
 
-Use observable timestamps, task events, or explicit status snapshots. The default possible-stall threshold is 60 minutes without meaningful progress, not 60 minutes since dispatch regardless of activity.
+Monitoring is part of dispatch, not an optional follow-up. Every main session must close the loop for each work/review chat, whether or not the main session has been handed over.
+
+### Monitoring loop
+
+1. Record the target chat ID, task ID, available dispatch/turn reference, send time, monitoring owner, and current state. Immediately inspect a compact status snapshot after sending; correlate it to this task, not an earlier completed turn.
+2. If acceptance or execution is not yet visible, keep waiting and checking. In Codex, prefer `wait_threads` with its returned cursor as `afterCursor` and a bounded nonzero `timeoutMs` (normally 120000); use a zero-timeout snapshot for the initial check. Use `read_thread` only for a small targeted inspection when the snapshot cannot establish acceptance, progress, or the cause of waiting. Do not repeatedly reload full histories.
+3. Count acceptance only from a task-specific acknowledgment or actual task progress. An open chat, a successful send, or an unrelated old completion is not proof of execution. When a queued task has no such evidence by the acknowledgment deadline (default 5 minutes from a real send timestamp), inspect the latest turn for an approval gate, error, disconnection, busy worker, or rejected task. Diagnose and recover through the authorized project-chat route; do not blindly resend or create a duplicate worker.
+4. After acceptance, keep checking actual progress and completion through real waits/status snapshots. A timeout is a checkpoint, not completion or permission to stop monitoring. Continue useful independent orchestration between checks where possible; keep monitoring all active tasks rather than only the last one dispatched.
+5. On a completion event, obtain the delivery packet and verify the task's acceptance evidence under section 6. Completion of a chat turn alone does not prove task completion. Route needed corrections or independent review through the registered project chats, and monitor those dispatches too.
+6. End the dispatch cycle only after verified delivery, an evidence-backed blocker requiring escalation/user action, or confirmed transfer to another monitoring owner. For a long-running task, ending the current turn with an interim status is allowed only when an authorized live background monitor really exists, with a recorded mechanism/identifier, owner, and next check. If no scheduler exists but synchronous wait/status tools do, keep using them; do not stop at “sent, awaiting confirmation.” Never equate a finished wait call or a promise to check later with a running monitor.
+
+A real approval or missing-access blocker may require the user; state its evidence and exact next action. Do not mislabel mere lack of acknowledgment, a normal wait timeout, or absence of a background scheduler as a terminal blocker while usable synchronous monitoring remains available. Do not create an automation or message another chat without the required user authorization.
+
+### Detect and recover from stalls
+
+Use observable timestamps, task events, or explicit status snapshots. The default possible-stall threshold is 60 minutes without meaningful progress, not 60 minutes since dispatch regardless of activity. The acknowledgment deadline is a separate early diagnostic checkpoint. Escalate observed errors or a blocked approval immediately; do not wait an hour after a known failure.
 
 A status message counts as progress only when it adds one of:
 
@@ -65,9 +93,7 @@ A status message counts as progress only when it adds one of:
 - a changed estimate grounded in discovered work;
 - a requested approval that actually gates progress.
 
-If no background scheduler or waiting mechanism exists, do not promise automatic checks. Perform the check when the session is next observable, or offer an authorized reminder/automation if the environment supports it.
-
-For takeover mechanics, use `handoff-protocol.md`.
+On a real stall, inspect the current task, diagnose the cause, and use `handoff-protocol.md` for an authorized same-role takeover if needed. Preserve the existing project-chat execution channel and prevent duplicate writers. Context migration must transfer the active monitoring state and next check rather than dropping unfinished tasks. Never claim continuous monitoring without an observable mechanism.
 
 ## 6. Delivery and evidence review
 

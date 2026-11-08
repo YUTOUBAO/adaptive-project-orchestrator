@@ -53,6 +53,9 @@ context_budget:
 
 reporting:
   progress_events: []
+  acceptance_confirmation_required: true
+  monitoring_owner_session_id: ""
+  acknowledgment_deadline: "" # Derived from a real dispatch timestamp.
   delivery_packet_required: true
   stop_conditions: []
 ```
@@ -65,6 +68,7 @@ reporting:
 - Separate authorization to analyze an action from authorization to perform it.
 - Include the minimum source material. Point to files instead of pasting large content when the session can read them safely.
 - Define stop conditions for missing access, conflicting changes, failed safety checks, unexpected external effects, or context pressure.
+- The main session owns acceptance checks, execution/completion monitoring, and delivery verification under `orchestration-core.md`. Do not finish dispatch at “sent”; on main-session handoff, transfer this ownership and its current check state.
 
 ## Delivery packet
 
