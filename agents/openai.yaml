@@ -1,0 +1,4 @@
+interface:
+  display_name: "Adaptive Project Orchestrator"
+  short_description: "Detect project phase and coordinate safe multi-session execution"
+  default_prompt: "Use $adaptive-project-orchestrator to inspect this project, build a profile, and coordinate the next safe batch of work."
